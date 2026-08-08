@@ -5,8 +5,6 @@ RUN apt-get update \
       bash ca-certificates git nix-bin xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-ENV NIX_CONFIG="experimental-features = nix-command flakes\nsandbox = false"
-
 WORKDIR /fixture
 COPY . .
 
@@ -18,4 +16,4 @@ RUN git init -q \
     && git add -A \
     && git commit -qm fixture
 
-CMD ["nix", "run", "--no-write-lock-file", ".#verify"]
+CMD ["nix", "--extra-experimental-features", "nix-command", "--extra-experimental-features", "flakes", "--option", "sandbox", "false", "--option", "build-users-group", "", "run", "--no-write-lock-file", ".#verify"]
