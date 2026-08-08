@@ -1,0 +1,18 @@
+# Ignore plaintext dotenv state everywhere.
+*.env
+*/*.env
+*/**/*.env
+.env.*
+*.env.*
+**/*.env.*
+!/.env.example
+
+# Never track decrypted output or runtime key/config state.
+/env/dec/
+/.fixture-runtime/
+/.fixture.sops.yaml
+
+# Only the two canonical ciphertext paths are eligible for tracking.
+/env/enc/*
+!/env/enc/dev.env.enc
+!/env/enc/prod.env.enc
