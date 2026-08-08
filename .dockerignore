@@ -1,0 +1,8 @@
+.git
+.env
+.env.*
+env/dec
+env/enc
+.fixture-runtime
+.fixture.sops.yaml
+result

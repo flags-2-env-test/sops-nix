@@ -1,0 +1,3 @@
+API_TOKEN=synthetic-prod-token
+URL=https://prod.invalid.example/path?a=1&b=2
+CHAIN=alpha=beta=gamma
