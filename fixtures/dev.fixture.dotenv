@@ -1,0 +1,3 @@
+API_TOKEN=synthetic-dev-token
+URL=https://dev.invalid.example/path?a=1&b=2
+CHAIN=left=middle=right
