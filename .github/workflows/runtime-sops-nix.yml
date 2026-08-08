@@ -1,0 +1,64 @@
+name: runtime-generated SOPS Nix fixture
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-sops-nix-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: Nix host contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Nix
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+        with:
+          flakehub: false
+
+      - name: Evaluate pinned flake
+        shell: bash
+        run: nix flake check --no-write-lock-file --no-build -L
+
+      - name: Run flake app contract
+        shell: bash
+        run: nix run --no-write-lock-file .#verify
+
+      - name: Run dev-shell contract
+        shell: bash
+        run: nix develop --no-write-lock-file --command bash scripts/assert.sh
+
+      - name: Prove runtime cleanup left the checkout clean
+        shell: bash
+        run: test -z "$(git status --porcelain)"
+
+  container:
+    name: Nix container contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build clean Nix fixture image
+        shell: bash
+        run: docker build --tag sops-nix-runtime-fixture .
+
+      - name: Run flake-backed container contract
+        shell: bash
+        run: docker run --rm sops-nix-runtime-fixture
