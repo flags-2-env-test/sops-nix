@@ -1,35 +1,36 @@
 # sops-nix
 
-sops environment fixture for the toolchain combination: **sops + nix (no just)**.
+Nix-specific port of the ORESoftware SOPS environment contract. The security and dotenv behavior is intentionally the same as `flags-2-env-test/sops-just@933a239388449901bf8cccfd3db5c4d79fdec039`; only the toolchain wrapper changes.
 
-Part of a matrix that proves the sops `env/enc` ↔ `env/dec` pattern behaves
-identically across toolchains **and** on both sides of a container boundary.
-Same contract in every fixture (`scripts/assert.sh`); only the surrounding
-tooling differs.
+This fixture has **no committed private age identity and no committed ciphertext**. Each verification run generates a fresh identity, exact dev/prod SOPS rules and synthetic ciphertext at runtime, exercises ignored decrypted files and the managed root `.env` symlink, then removes all runtime state.
 
-## Why the container half matters
+## Nix-specific guarantees
 
-Every defect this pattern has actually shipped was invisible from one side:
+- `nix run .#verify` executes the shared contract without entering a shell first;
+- `nix develop --command bash scripts/assert.sh` exposes every required runtime (`sops`, `age`, Python, Git and shell/core utilities) from the pinned dev shell;
+- the same flake-backed contract runs inside a clean container boundary;
+- `nixpkgs` is pinned to an exact `nixos-unstable` commit rather than floating at test time.
 
-| Defect | Visible from |
-|---|---|
-| `dd … status=none` is GNU-only, so the secure overwrite silently no-opped | Linux only |
-| `python3` missing from the nix devshell | inside `nix develop` only |
-| k8s Secret named from `basename(pwd)` → `w-local` under a `/w` mount | container only |
-| `sops exec-env` needs `/bin/sh`, so it cannot run on distroless | container only |
+## Shared security contract
 
-So each fixture asserts on the host **and** in Docker, and CI runs both.
+- no private age identity in Git or logs;
+- exact `env/enc/dev.env.enc` and `env/enc/prod.env.enc` creation rules;
+- explicit SOPS dotenv input/output types plus filename override;
+- no-identity decrypt failure;
+- ignored `env/dec/**` with mode `0600`;
+- unmanaged root `.env` refusal and managed relative symlink activation;
+- Git ignore/index proof that plaintext is blocked while exactly the two approved ciphertext paths are allowlisted;
+- cleanup removes runtime key/config/ciphertext/plaintext/symlink state.
 
-## Run it
+All fixture values are synthetic.
+
+## Run
 
 ```sh
-nix run .#verify                 # host
-docker build -t sops-nix . && docker run --rm sops-nix   # container
+nix run .#verify
+nix develop --command bash scripts/assert.sh
+docker build -t sops-nix-runtime-fixture .
+docker run --rm sops-nix-runtime-fixture
 ```
 
-## The committed key is intentional
-
-`age.key` is a **throwaway** private key, committed so CI can decrypt with zero
-secrets configured. Every value it protects is fake. It exists to make the e2e
-real; never reuse it. In a production repo the private key is never committed —
-see the recipient-roster model in `.sops.yaml`.
+Tracking: DEN-2919 / DEN-2636.
