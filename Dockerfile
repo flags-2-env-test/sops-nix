@@ -1,9 +1,6 @@
-FROM debian:bookworm-slim
+FROM nixos/nix:2.35.1-amd64
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-      bash ca-certificates git nix-bin xz-utils \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache bash ca-certificates git
 
 WORKDIR /fixture
 COPY . .
@@ -16,4 +13,4 @@ RUN git init -q \
     && git add -A \
     && git commit -qm fixture
 
-CMD ["nix", "--extra-experimental-features", "nix-command", "--extra-experimental-features", "flakes", "--option", "sandbox", "false", "--option", "build-users-group", "", "run", "--no-write-lock-file", ".#verify"]
+CMD ["nix", "--extra-experimental-features", "nix-command", "--extra-experimental-features", "flakes", "--option", "sandbox", "false", "run", "--no-write-lock-file", ".#verify"]
