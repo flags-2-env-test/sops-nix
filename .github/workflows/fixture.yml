@@ -1,0 +1,43 @@
+name: sops-nix fixture
+
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+  # Joins the upstream fan-out from ORESoftware/flags-2-env.
+  repository_dispatch:
+    types: [upstream-changed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: assert on the host
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Install sops
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/sops https://github.com/getsops/sops/releases/download/v3.13.1/sops-v3.13.1.linux.amd64
+          sudo install -m0755 /tmp/sops /usr/local/bin/sops
+      - run: SOPS_AGE_KEY_FILE=age.key ./scripts/assert.sh
+
+  container:
+    name: assert inside a container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      # The same assertions must hold inside the image. Every defect this
+      # matrix has caught was visible from exactly one side of this boundary.
+      - run: docker build --build-arg TARGETARCH=amd64 -t fixture .
+      - run: docker run --rm fixture

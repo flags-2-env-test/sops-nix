@@ -1,0 +1,10 @@
+# TEST-ONLY recipient. The matching private key is committed in this repository
+# on purpose (see age.key) so CI can decrypt with no secrets configured. Every
+# value it protects is fake. Never reuse this key anywhere real.
+keys:
+  - &test age1nwgee0d9n9lwujr45wdsf87vqg4cy7qnrdst5xhlahkvzcp3sy7q5qx0nz
+creation_rules:
+  - path_regex: env/enc/.*\.env\.enc$
+    key_groups:
+      - age:
+          - *test
